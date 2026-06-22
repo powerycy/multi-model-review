@@ -1,0 +1,4 @@
+interface:
+  display_name: "Multi-Model Review"
+  short_description: "Two-stage discovery and 3/3 or 2/3 judge voting"
+  default_prompt: "Use $multi-model-review to discover candidate issues with three independent models, judge each candidate with the shared judge prompt, report verified 3/3 and 2/3 findings, and avoid modifying files."

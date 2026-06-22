@@ -1,0 +1,34 @@
+{
+  "reviewers": [
+    {
+      "name": "glm-correctness",
+      "enabled": true,
+      "endpoint": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+      "model": "glm-5.2",
+      "api_key_env": "BIGMODEL_API_KEY",
+      "prompt_id": "correctness-review",
+      "thinking": {
+        "type": "enabled"
+      },
+      "reasoning_effort": "max",
+      "max_tokens": 65536,
+      "temperature": 1.0,
+      "timeout_seconds": 180
+    },
+    {
+      "name": "deepseek-testing",
+      "enabled": true,
+      "endpoint": "https://api.deepseek.com/chat/completions",
+      "model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "prompt_id": "testing-review",
+      "thinking": {
+        "type": "enabled"
+      },
+      "reasoning_effort": "high",
+      "max_tokens": 4096,
+      "temperature": 0.2,
+      "timeout_seconds": 180
+    }
+  ]
+}
