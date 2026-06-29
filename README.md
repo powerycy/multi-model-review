@@ -73,6 +73,15 @@
 - `rejected`：候选问题误读了材料，或不构成真实问题。
 - `insufficient_evidence`：问题可能存在，但当前材料不足以确认。
 
+为了控制成本，judge 阶段使用固定的 3 条 judge lane，而不是为每个候选问题都重新启动一组 3 个 judge sub-agent。流程是：
+
+1. 启动或配置 `judge-1`、`judge-2`、`judge-3`。
+2. 把 `CAND-001` 分别交给 3 个 judge lane 投票。
+3. 记录投票结果后，清理或丢弃这一轮 candidate 的上下文。
+4. 再用同一组 judge lane 判断 `CAND-002`，依次处理后续候选问题。
+
+也就是说，judge 的独立性来自“三个 judge lane 互相看不到对方结果”，不是来自“每个候选问题都新建一批 judge”。
+
 只有 `confirmed` 会计为支持票。票数是置信信号，不是证明；最终报告前仍然需要回到原始材料验证 `3/3` 和 `2/3` 问题。
 
 ## 安装
@@ -107,7 +116,7 @@ git clone https://github.com/powerycy/multi-model-review.git ~/.codex/skills/mul
 
 ## 审查模式
 
-- `builtin`：默认模式，只使用 Codex 内置模型。当前配置使用 3 个独立 `gpt-5.5` reviewer，再用 3 个独立 `gpt-5.5` judge。
+- `builtin`：默认模式，只使用 Codex 内置模型。当前配置使用 3 个独立 `gpt-5.5` reviewer，再用固定的 3 条 `gpt-5.5` judge lane 逐个候选问题投票。
 - `hybrid`：混合外部模型和 Codex。当前示例配置是 GLM-5.2、DeepSeek V4 Pro、GPT-5.5。
 - `external`：仅使用外部模型。只有在你明确配置了至少 3 个外部 reviewer 时才建议使用。
 

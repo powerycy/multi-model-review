@@ -24,7 +24,7 @@ All three judge models use the same Prompt:
 | Judge 2 | `gpt-5.5` or `deepseek-v4-pro` | [`judge-review`](#prompt-judge-review) |
 | Judge 3 | `gpt-5.5` | [`judge-review`](#prompt-judge-review) |
 
-Run one candidate per judge request. Do not include discovery support counts or other judges' decisions.
+Run one candidate per judge request through the fixed three judge lanes. After recording a verdict, clear or discard that candidate-specific context before the lane judges another candidate. Do not include discovery support counts, other judges' decisions, previous candidates, previous verdicts, running tallies, or synthesis notes.
 
 ## Prompt: correctness-review
 

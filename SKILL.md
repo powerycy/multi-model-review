@@ -8,7 +8,7 @@ description: Run a two-stage evidence-based review with three independent discov
 Run a two-stage read-only review:
 
 1. Discover candidate issues with complementary prompts.
-2. Judge every candidate with three independent models using the exact same judge prompt.
+2. Judge every candidate with a fixed pool of three independent judges using the exact same judge prompt.
 
 Treat votes as confidence signals, not proof. Validate voted findings against original artifacts before reporting, recommending, or applying changes.
 
@@ -72,21 +72,32 @@ Do not use discovery support count as a vote. A candidate found by only one disc
 
 Use `judge-review` from [references/reviewer-prompts.md](references/reviewer-prompts.md) for all three judges. The system prompt must be byte-for-byte identical across judges except for provider-required transport formatting.
 
-Judge each candidate independently. Give every judge:
+Create exactly three judge lanes for the whole review run:
+
+- `judge-1`
+- `judge-2`
+- `judge-3`
+
+In builtin mode, these are three independent `gpt-5.5` Codex judge sub-agents using the same `judge-review` prompt. In hybrid mode, use the configured external judge lanes plus one `gpt-5.5` Codex judge lane to reach three independent votes. External judges must all use `prompt_id: judge-review`.
+
+Process candidates through this fixed judge pool. Do not launch a new set of three judge sub-agents for every candidate. For each candidate, send one isolated judge packet to each of the three judge lanes, collect the three verdicts, then clear or discard that candidate's context before judging the next candidate.
+
+If the runtime supports clearing a sub-agent's conversation state, reset each judge lane after recording its verdict for the current candidate. If the runtime cannot clear an existing sub-agent context, emulate the same behavior with fresh isolated judge requests while keeping concurrency bounded to three active judge lanes; never fan out to `3 * candidate_count` active judge agents.
+
+Judge each candidate independently. Give every judge lane:
 
 - The original bounded review material.
 - Exactly one normalized candidate issue.
 - The candidate's claimed location and evidence.
 
-Do not give judges:
+Do not give judge lanes:
 
 - Discovery reviewer identities.
 - Discovery support counts.
 - Other judges' decisions.
 - The desired vote outcome.
 - Unrelated candidate issues.
-
-Use `gpt-5.5` for every Codex judge. In builtin mode, run three independent `gpt-5.5` judge instances with the same `judge-review` prompt. In hybrid mode, use the configured external models plus one `gpt-5.5` Codex judge to reach three independent votes. External judges must all use `prompt_id: judge-review`.
+- Previous candidates, previous verdicts, running tallies, or synthesis notes.
 
 Each judge must return one of:
 

@@ -28,9 +28,11 @@ The bundled example currently configures:
 
 Combine these two external reviewers with one Codex reviewer in `hybrid` mode.
 
-For the second-stage vote, use `external-judges.example.json`. Both external models use `prompt_id: judge-review`; combine them with one independent Codex judge using the same prompt.
+For the second-stage vote, use `external-judges.example.json`. Both external models use `prompt_id: judge-review`; combine them with one independent Codex judge lane using the same prompt.
 
-Run one normalized candidate per judge packet. Include the original bounded material and exactly one candidate. Do not include discovery support counts or other judge results.
+Use exactly three judge lanes for the full judge stage. Run one normalized candidate per judge packet. Include the original bounded material and exactly one candidate. Do not include discovery support counts, other judge results, previous candidates, previous verdicts, running tallies, or synthesis notes.
+
+After a judge lane returns a verdict for one candidate, record the verdict and clear or discard that candidate-specific context before sending the next candidate to the same lane. If the runtime cannot clear an existing Codex sub-agent context, use fresh isolated requests while keeping the active judge concurrency bounded to the three configured judge lanes.
 
 ## Security
 
