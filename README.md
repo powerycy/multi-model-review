@@ -54,6 +54,17 @@ Each judge returns one of:
 
 Only `confirmed` counts as a supporting vote.
 
+To control cost, the judge stage uses exactly three judge lanes for the whole review run instead of launching a new set of three judge sub-agents for every candidate.
+
+The intended flow is:
+
+1. Start or configure `judge-1`, `judge-2`, and `judge-3`.
+2. Send `CAND-001` to the three judge lanes for independent votes.
+3. Record the verdicts, then clear or discard that candidate-specific context.
+4. Reuse the same three judge lanes for `CAND-002` and the remaining candidates.
+
+In other words, independence comes from the three judge lanes not seeing each other's results. It does not require creating a fresh group of three judges for every candidate.
+
 Final classifications:
 
 - `3/3`: high-confidence finding.
@@ -66,7 +77,7 @@ Votes are confidence signals, not proof. The main Codex agent must still re-chec
 
 ### `builtin`
 
-Default mode. Uses Codex sub-agents for both discovery and judging.
+Default mode. Uses three independent Codex discovery reviewers, then a fixed pool of three Codex judge lanes for candidate voting.
 
 Use this when you want a local Codex-native workflow without sending material to external model providers.
 
