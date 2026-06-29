@@ -125,6 +125,8 @@ Read [references/external-reviewers.md](references/external-reviewers.md) before
 
 Use [scripts/external_review.py](scripts/external_review.py) for OpenAI-compatible chat-completions endpoints. Select a prompt in each reviewer configuration through `prompt_id`. The script reads the complete prompt directly from [references/reviewer-prompts.md](references/reviewer-prompts.md), or from another Markdown prompt file supplied through `--prompts`. Read keys from environment variables or the private Skill-local `.env.local`. Never put keys in prompts, reviewer JSON configuration, command arguments, logs, or committed files.
 
+On the first `hybrid` or `external` run, if GLM or DeepSeek credentials are missing, remind the user to configure `BIGMODEL_API_KEY` and `DEEPSEEK_API_KEY`. The runner will also stop before sending any request and print the missing environment variables plus safe setup instructions.
+
 The bundled hybrid configuration uses GLM-5.2 for correctness, DeepSeek V4 Pro for testing, and one `gpt-5.5` Codex sub-agent for the adversarial lens.
 
 For the judge stage, use [references/external-judges.example.json](references/external-judges.example.json) for the two external judges and one `gpt-5.5` Codex judge. All three must use `judge-review`.

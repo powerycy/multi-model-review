@@ -20,6 +20,12 @@ LOCAL_ENV_PATH = SKILL_ROOT / ".env.local"
 DEFAULT_PROMPTS_PATH = SKILL_ROOT / "references" / "reviewer-prompts.md"
 
 
+KNOWN_API_KEY_HINTS = {
+    "BIGMODEL_API_KEY": "GLM / Zhipu",
+    "DEEPSEEK_API_KEY": "DeepSeek",
+}
+
+
 def load_local_env(path: Path = LOCAL_ENV_PATH) -> None:
     """Load simple KEY=VALUE entries without overriding process environment."""
     if not path.is_file():
@@ -90,7 +96,6 @@ def load_prompt_markdown(path: Path) -> dict[str, dict[str, str]]:
 def validate_reviewer(
     value: Any,
     index: int,
-    require_key: bool,
     prompts: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     if not isinstance(value, dict):
@@ -106,11 +111,37 @@ def validate_reviewer(
     endpoint = str(value["endpoint"])
     if not endpoint.startswith("https://"):
         raise ValueError(f"reviewers[{index}].endpoint must use https")
-    if require_key and not os.environ.get(str(value["api_key_env"])):
-        raise ValueError(
-            f"environment variable {value['api_key_env']} is not configured"
-        )
     return value
+
+
+def format_missing_api_key_message(missing_envs: list[str]) -> str:
+    details = []
+    for env_name in missing_envs:
+        provider = KNOWN_API_KEY_HINTS.get(env_name)
+        if provider:
+            details.append(f"- {env_name}: {provider} API key")
+        else:
+            details.append(f"- {env_name}")
+
+    export_lines = [f'export {env_name}="<your api key>"' for env_name in missing_envs]
+    dotenv_lines = [f'{env_name}="..."' for env_name in missing_envs]
+
+    return "\n".join(
+        [
+            "External model API keys are required before the first non-dry run.",
+            "Missing environment variables:",
+            *details,
+            "",
+            "Set them in your shell before running:",
+            *export_lines,
+            "",
+            f"Or create {LOCAL_ENV_PATH} with:",
+            *dotenv_lines,
+            "",
+            "Keep keys out of prompts, JSON config, command arguments, logs, and Git.",
+            "After configuring keys, run --dry-run once to confirm they are detected.",
+        ]
+    )
 
 
 def build_payload(
@@ -223,7 +254,6 @@ async def run(args: argparse.Namespace) -> int:
         validate_reviewer(
             value,
             index,
-            require_key=not args.dry_run,
             prompts=prompts,
         )
         for index, value in enumerate(raw_reviewers)
@@ -231,6 +261,17 @@ async def run(args: argparse.Namespace) -> int:
     ]
     if not active:
         raise ValueError("no external reviewers are enabled")
+
+    if not args.dry_run:
+        missing_envs = sorted(
+            {
+                str(reviewer["api_key_env"])
+                for reviewer in active
+                if not os.environ.get(str(reviewer["api_key_env"]))
+            }
+        )
+        if missing_envs:
+            raise ValueError(format_missing_api_key_message(missing_envs))
 
     material = args.input.read_text(encoding="utf-8")
     if args.dry_run:

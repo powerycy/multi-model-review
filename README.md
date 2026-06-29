@@ -184,6 +184,15 @@ python3 scripts/external_review.py \
   --dry-run
 ```
 
+Before the first non-dry `hybrid` or `external` run, configure the external model API keys used by the bundled examples:
+
+```bash
+export BIGMODEL_API_KEY="..."
+export DEEPSEEK_API_KEY="..."
+```
+
+If keys are missing, `scripts/external_review.py` stops before sending any request and prints the missing variables plus safe setup instructions for environment variables or `.env.local`.
+
 Run external reviewers:
 
 ```bash

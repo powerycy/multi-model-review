@@ -195,6 +195,15 @@ python3 scripts/external_review.py \
 
 外部模型调用可能会把项目材料发送到本机之外。除非用户明确授权，否则不要使用外部 reviewer。
 
+第一次运行 `hybrid` 或 `external` 模式前，需要先配置外部模型 API Key。默认示例会用到：
+
+```bash
+export BIGMODEL_API_KEY="..."
+export DEEPSEEK_API_KEY="..."
+```
+
+如果没有配置，`scripts/external_review.py` 会在正式运行前停止，不会发送任何请求，并提示缺少哪些环境变量，以及如何通过环境变量或 `.env.local` 安全配置。建议先跑一次 `--dry-run`，确认脚本能检测到 key。
+
 不要把 API Key 写进这些地方：
 
 - Prompt。
