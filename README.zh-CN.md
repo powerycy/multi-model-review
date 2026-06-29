@@ -52,6 +52,17 @@
 
 只有 `confirmed` 会计为支持票。
 
+为了控制成本，judge 阶段使用固定的 3 条 judge lane，而不是为每个候选问题都重新启动一组 3 个 judge sub-agent。
+
+推荐流程是：
+
+1. 启动或配置 `judge-1`、`judge-2`、`judge-3`。
+2. 把 `CAND-001` 分别交给 3 个 judge lane 独立投票。
+3. 记录投票结果后，清理或丢弃这一轮 candidate 的上下文。
+4. 再用同一组 judge lane 判断 `CAND-002`，依次处理后续候选问题。
+
+也就是说，judge 的独立性来自“三个 judge lane 互相看不到对方结果”，不是来自“每个候选问题都新建一批 judge”。
+
 最终分类：
 
 - `3/3`：高置信问题。
@@ -64,7 +75,7 @@
 
 ### `builtin`
 
-默认模式，只使用 Codex 子智能体完成发现和判断。
+默认模式，使用 3 个独立 Codex discovery reviewer，然后用固定的 3 条 Codex judge lane 对候选问题投票。
 
 适合不希望把材料发送给外部模型服务的本地 Codex 审查流程。
 
