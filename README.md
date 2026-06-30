@@ -36,7 +36,7 @@ The final report focuses on verified `3/3` and `2/3` findings, while lower-confi
 
 ## Review Lenses
 
-The built-in review flow uses three complementary lenses:
+The review flow uses three complementary lenses:
 
 - **Correctness review**: checks factual errors, invalid assumptions, contradictions, logic defects, and unsupported conclusions.
 - **Testing review**: checks missing test coverage, weak assertions, untested failure paths, flaky assumptions, and regression risk.
@@ -91,7 +91,7 @@ Use this when external API keys are not configured, external calls are unavailab
 
 ### `hybrid`
 
-Default path when external keys are configured. Combines external OpenAI-compatible model APIs with Codex sub-agents.
+Three-model path used by `auto` when external keys are configured. Combines external OpenAI-compatible model APIs with Codex sub-agents.
 
 The bundled example is designed around:
 
@@ -216,7 +216,7 @@ python3 scripts/external_review.py \
 
 ## Security Notes
 
-External model calls can send project material outside your machine. Do not use external reviewers unless the user has authorized that transfer.
+External model calls can send project material outside your machine. In `auto` or `hybrid` mode, the Skill must disclose the providers, models, and bounded review material before using configured external reviewers. Use `builtin` for local-only review.
 
 Never place API keys in:
 
