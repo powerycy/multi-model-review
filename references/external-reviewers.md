@@ -1,6 +1,6 @@
 # External Reviewers
 
-Use external APIs only when the user requests cross-provider or external-model review.
+Use external APIs by default when the Skill is in `auto` mode and the bundled keys are configured, or when the user requests cross-provider or external-model review. Fall back to Codex-only review when keys are missing, configuration is invalid, external calls fail before usable output, or the user requests local-only review.
 
 ## Configuration
 
@@ -26,7 +26,7 @@ The bundled example currently configures:
 - Zhipu GLM-5.2 for correctness review.
 - DeepSeek V4 Pro for testing review.
 
-Combine these two external reviewers with one Codex reviewer in `hybrid` mode.
+Combine these two external reviewers with one Codex reviewer in the default `auto`/`hybrid` path.
 
 For the second-stage vote, use `external-judges.example.json`. Both external models use `prompt_id: judge-review`; combine them with one independent Codex judge lane using the same prompt.
 
@@ -45,7 +45,7 @@ After a judge lane returns a verdict for one candidate, record the verdict and c
 
 ## Hybrid Review
 
-When only one external reviewer is configured, combine it with two different Codex models. When two external reviewers are configured, combine them with one Codex reviewer. Keep all reviewer prompts independent and disclose the actual composition.
+The intended default is GLM-5.2 + DeepSeek V4 Pro + Codex. When only one external reviewer is configured, combine it with two independent Codex channels and disclose that the run is not a full three-provider review. When two external reviewers are configured, combine them with one Codex reviewer. Keep all reviewer prompts independent and disclose the actual composition.
 
 ## Adding Providers
 
