@@ -1,6 +1,6 @@
 ---
 name: multi-model-review
-description: Run a two-stage evidence-based review with three independent discovery reviewers, then three independent judges using one shared judge prompt. Report verified 3/3 and 2/3 findings. Supports Codex sub-agents and optional external OpenAI-compatible model APIs. Use when the user requests multi-model review, cross-provider review, three reviewers, voting review, external-model review, cross-model validation, or invokes $multi-model-review to inspect code, technical documents, architecture, configuration, data claims, plans, logs, or mixed project artifacts.
+description: Use when the user requests multi-model review, cross-provider review, voting review, external-model review, cross-model validation, or invokes $multi-model-review to inspect code, technical documents, architecture, configuration, data claims, plans, logs, or mixed project artifacts.
 ---
 
 # Multi Model Review
@@ -14,11 +14,29 @@ Treat votes as confidence signals, not proof. Validate voted findings against or
 
 ## Select a Mode
 
-- Use `builtin` by default: launch three independent `gpt-5.5` Codex sub-agents with different discovery prompts.
-- Use `hybrid` when the user requests an external or cross-provider model: combine external API reviewers with Codex sub-agents until three independent reviewers are running.
+- Use `auto` by default: prefer three different model channels. When the bundled external reviewers and judges are configured with keys, run `hybrid` using GLM-5.2, DeepSeek V4 Pro, and one `gpt-5.5` Codex channel.
+- Fall back to `builtin` only when external keys are missing, external configuration is invalid, external calls fail before producing usable reviewer output, or the user requests local-only review.
+- Use `hybrid` when the user explicitly requests external, cross-provider, or three-model review: combine external API reviewers with Codex sub-agents until three independent reviewers are running.
+- Use `builtin` when the user explicitly requests Codex-only/local-only review: launch three independent `gpt-5.5` Codex sub-agents with different discovery prompts.
 - Use `external` only when the user explicitly requests API-only review and at least three external reviewers are configured.
 
-Never silently transmit workspace content to an external provider. Before running an external reviewer, state the provider, model, and material that will be sent. Proceed only when the user's request already authorizes that transmission or after obtaining confirmation.
+Never silently transmit workspace content to an external provider. Before running an external reviewer, state the provider, model, and material that will be sent. If the user installed external keys and invokes the default review without requesting local-only mode, treat that as intent to use the configured three-model path after this disclosure. If the user declines or external transmission is otherwise not authorized, fall back to `builtin` and disclose the fallback.
+
+Before selecting `hybrid` or `external`, validate configuration without network access:
+
+```bash
+python3 scripts/external_review.py \
+  --config references/external-reviewers.example.json \
+  --input REVIEW_PACKET_PATH \
+  --dry-run
+
+python3 scripts/external_review.py \
+  --config references/external-judges.example.json \
+  --input REVIEW_PACKET_PATH \
+  --dry-run
+```
+
+Use `hybrid` only when both external reviewer and external judge dry-runs show the required API keys are configured. Otherwise use `builtin`.
 
 ## Establish Scope
 
@@ -124,8 +142,6 @@ A `3/3` vote is still not proof. Re-open the original artifact and independently
 Read [references/external-reviewers.md](references/external-reviewers.md) before configuring or running external models.
 
 Use [scripts/external_review.py](scripts/external_review.py) for OpenAI-compatible chat-completions endpoints. Select a prompt in each reviewer configuration through `prompt_id`. The script reads the complete prompt directly from [references/reviewer-prompts.md](references/reviewer-prompts.md), or from another Markdown prompt file supplied through `--prompts`. Read keys from environment variables or the private Skill-local `.env.local`. Never put keys in prompts, reviewer JSON configuration, command arguments, logs, or committed files.
-
-On the first `hybrid` or `external` run, if GLM or DeepSeek credentials are missing, remind the user to configure `BIGMODEL_API_KEY` and `DEEPSEEK_API_KEY`. The runner will also stop before sending any request and print the missing environment variables plus safe setup instructions.
 
 The bundled hybrid configuration uses GLM-5.2 for correctness, DeepSeek V4 Pro for testing, and one `gpt-5.5` Codex sub-agent for the adversarial lens.
 
