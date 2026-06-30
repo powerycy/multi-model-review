@@ -2,7 +2,9 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-`multi-model-review` 是一个用于 Codex 的多模型审查 Skill。它通过“多模型独立发现问题 + 多模型独立投票确认”的方式，帮助你更稳地审查 PRD、技术方案、架构文档、代码改动、配置文件、日志和数据结论。
+`multi-model-review` 是一个用于 Codex 的三模型交叉审查 Skill。它通过“多模型独立发现问题 + 多模型独立投票确认”的方式，帮助你更稳地审查 PRD、技术方案、架构文档、代码改动、配置文件、日志和数据结论。
+
+默认情况下，只要外部 API Key 已配置，它会优先使用 **GLM + DeepSeek + Codex** 三个模型通道。如果没有外部 Key、配置不可用、外部调用失败，或用户明确要求本地审查，才会降级为 Codex-only 审查。
 
 如果你经常让 Codex 审查重要文档或项目材料，这个 Skill 主要解决三个问题：
 
@@ -16,8 +18,8 @@
 
 `multi-model-review` 把审查拆成两个阶段：
 
-1. **发现阶段**：3 个独立 reviewer 从不同角度审查同一份有边界的材料。
-2. **判断阶段**：3 个独立 judge 针对候选问题回到原始材料投票确认。
+1. **发现阶段**：3 个独立模型通道从不同角度审查同一份有边界的材料。
+2. **判断阶段**：3 条独立 judge lane 针对候选问题回到原始材料投票确认。
 
 最终报告默认只展示经过验证的 `3/3` 和 `2/3` 问题，低置信候选问题不会进入默认报告。
 
@@ -73,15 +75,21 @@
 
 ## 审查模式
 
+### `auto`
+
+默认模式。外部 Key 已配置时使用 GLM + DeepSeek + Codex；没有外部 Key 时自动降级为 Codex-only 审查。
+
+日常审查建议直接使用这个模式。
+
 ### `builtin`
 
-默认模式，使用 3 个独立 Codex discovery reviewer，然后用固定的 3 条 Codex judge lane 对候选问题投票。
+Codex-only 降级模式。使用 3 个独立 Codex discovery reviewer，然后用固定的 3 条 Codex judge lane 对候选问题投票。
 
-适合不希望把材料发送给外部模型服务的本地 Codex 审查流程。
+适合没有配置外部 API Key、外部调用不可用，或不希望把材料发送给外部模型服务的本地 Codex 审查流程。
 
 ### `hybrid`
 
-混合外部 OpenAI-compatible 模型 API 和 Codex 子智能体。
+外部 Key 已配置时的默认路径。混合外部 OpenAI-compatible 模型 API 和 Codex 子智能体。
 
 当前示例配置面向：
 
@@ -89,7 +97,7 @@
 - DeepSeek V4 Pro：testing review。
 - GPT-5.5 Codex 子智能体：其他内置审查和 judge 角色。
 
-适合明确需要跨模型、跨供应商审查的场景。
+适合发挥这个项目的核心亮点：GLM + DeepSeek + Codex 三模型交叉审查。
 
 ### `external`
 
@@ -112,25 +120,31 @@ git clone https://github.com/powerycy/multi-model-review.git ~/.codex/skills/mul
 审查单个文件：
 
 ```text
-用 multi-model-review builtin 审查 /path/to/target.md
+用 multi-model-review 审查 /path/to/target.md
 ```
 
 审查项目目录：
 
 ```text
-用 multi-model-review builtin 审查 /path/to/project
+用 multi-model-review 审查 /path/to/project
 ```
 
-使用混合外部模型审查：
+强制使用混合外部模型审查：
 
 ```text
 用 multi-model-review hybrid 审查 /path/to/target.md
 ```
 
+强制只使用本地 Codex 审查：
+
+```text
+用 multi-model-review builtin 审查 /path/to/target.md
+```
+
 英文也可以：
 
 ```text
-Use multi-model-review builtin to review /path/to/target.md
+Use multi-model-review to review /path/to/target.md
 ```
 
 ## Prompt 在哪里改
@@ -173,6 +187,13 @@ cp references/external-reviewers.example.json ~/external-reviewers.json
 cp references/external-judges.example.json ~/external-judges.json
 ```
 
+默认示例配置需要：
+
+- `BIGMODEL_API_KEY`：用于 GLM。
+- `DEEPSEEK_API_KEY`：用于 DeepSeek。
+
+当两个 Key 都配置好时，默认审查路径就是 GLM + DeepSeek + Codex。没有配置 Key 时，Skill 会降级为 Codex-only 审查。
+
 先做一次无网络 dry-run 检查：
 
 ```bash
@@ -194,15 +215,6 @@ python3 scripts/external_review.py \
 ## 密钥安全
 
 外部模型调用可能会把项目材料发送到本机之外。除非用户明确授权，否则不要使用外部 reviewer。
-
-第一次运行 `hybrid` 或 `external` 模式前，需要先配置外部模型 API Key。默认示例会用到：
-
-```bash
-export BIGMODEL_API_KEY="..."
-export DEEPSEEK_API_KEY="..."
-```
-
-如果没有配置，`scripts/external_review.py` 会在正式运行前停止，不会发送任何请求，并提示缺少哪些环境变量，以及如何通过环境变量或 `.env.local` 安全配置。建议先跑一次 `--dry-run`，确认脚本能检测到 key。
 
 不要把 API Key 写进这些地方：
 
@@ -230,7 +242,7 @@ export DEEPSEEK_API_KEY="..."
 - 只审查当前任务所需的最小范围。
 - 排除生成文件、密钥、个人数据和无关项目内容。
 - 只有确实需要时再要求完整审计轨迹。
-- 除非需要跨供应商验证，否则优先使用 `builtin` 模式。
+- 日常审查使用默认 `auto` 三模型模式；只有需要本地审查或降低外部 API 成本时才使用 `builtin`。
 
 ## 仓库结构
 
