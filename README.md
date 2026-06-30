@@ -2,9 +2,11 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-`multi-model-review` is a Codex Skill for evidence-based reviews across multiple independent reviewers and judges.
+`multi-model-review` is a Codex Skill for evidence-based reviews across three independent model channels.
 
 It helps Codex review PRDs, technical proposals, architecture documents, code changes, configuration files, logs, and data claims with a more disciplined workflow: first discover candidate issues from different review lenses, then validate those candidates through independent judging before reporting only higher-confidence findings.
+
+By default, the Skill tries to use **GLM + DeepSeek + Codex** when external API keys are configured. If external keys are missing, invalid, unavailable, or the user requests local-only review, it falls back to Codex-only review.
 
 If you often ask Codex to review important documents or project artifacts, this Skill is designed to reduce three common problems:
 
@@ -18,8 +20,8 @@ Single-pass AI reviews are fast, but they can be inconsistent. A model may notic
 
 `multi-model-review` separates the review into two stages:
 
-1. **Discovery**: three independent reviewers inspect the same bounded review packet from complementary perspectives.
-2. **Judging**: three independent judges evaluate candidate issues against the original material and vote on whether each issue is supported.
+1. **Discovery**: three independent channels inspect the same bounded review packet from complementary perspectives.
+2. **Judging**: three independent judge lanes evaluate candidate issues against the original material and vote on whether each issue is supported.
 
 The final report focuses on verified `3/3` and `2/3` findings, while lower-confidence candidates stay out of the default report.
 
@@ -75,15 +77,21 @@ Votes are confidence signals, not proof. The main Codex agent must still re-chec
 
 ## Modes
 
+### `auto`
+
+Default mode. Uses GLM + DeepSeek + Codex when the external keys are configured, and falls back to Codex-only review when they are not.
+
+Use this for normal reviews.
+
 ### `builtin`
 
-Default mode. Uses three independent Codex discovery reviewers, then a fixed pool of three Codex judge lanes for candidate voting.
+Codex-only fallback mode. Uses three independent Codex discovery reviewers, then a fixed pool of three Codex judge lanes for candidate voting.
 
-Use this when you want a local Codex-native workflow without sending material to external model providers.
+Use this when external API keys are not configured, external calls are unavailable, or you want a local Codex-native workflow without sending material to external model providers.
 
 ### `hybrid`
 
-Combines external OpenAI-compatible model APIs with Codex sub-agents.
+Default path when external keys are configured. Combines external OpenAI-compatible model APIs with Codex sub-agents.
 
 The bundled example is designed around:
 
@@ -91,7 +99,7 @@ The bundled example is designed around:
 - DeepSeek V4 Pro for testing review.
 - GPT-5.5 Codex sub-agents for the remaining built-in review and judge roles.
 
-Use this when you explicitly want cross-provider review.
+Use this when you want the main three-model value proposition: GLM + DeepSeek + Codex.
 
 ### `external`
 
@@ -114,25 +122,31 @@ If the repository is private, make sure your local GitHub HTTPS or SSH credentia
 Ask Codex to use this Skill on a file:
 
 ```text
-Use multi-model-review builtin to review /path/to/target.md
+Use multi-model-review to review /path/to/target.md
 ```
 
 Or on a project directory:
 
 ```text
-Use multi-model-review builtin to review /path/to/project
+Use multi-model-review to review /path/to/project
 ```
 
-For cross-provider review:
+To force cross-provider review:
 
 ```text
 Use multi-model-review hybrid to review /path/to/target.md
 ```
 
+To force local Codex-only review:
+
+```text
+Use multi-model-review builtin to review /path/to/target.md
+```
+
 For Chinese prompts:
 
 ```text
-用 multi-model-review builtin 审查 /path/to/target.md
+用 multi-model-review 审查 /path/to/target.md
 ```
 
 ## Prompt Customization
@@ -175,6 +189,13 @@ cp references/external-reviewers.example.json ~/external-reviewers.json
 cp references/external-judges.example.json ~/external-judges.json
 ```
 
+The default bundled configuration expects:
+
+- `BIGMODEL_API_KEY` for GLM.
+- `DEEPSEEK_API_KEY` for DeepSeek.
+
+When both keys are configured, the default review path is GLM + DeepSeek + Codex. When the keys are not configured, the Skill falls back to Codex-only review.
+
 Validate configuration without network access:
 
 ```bash
@@ -183,15 +204,6 @@ python3 scripts/external_review.py \
   --input REVIEW_PACKET_PATH \
   --dry-run
 ```
-
-Before the first non-dry `hybrid` or `external` run, configure the external model API keys used by the bundled examples:
-
-```bash
-export BIGMODEL_API_KEY="..."
-export DEEPSEEK_API_KEY="..."
-```
-
-If keys are missing, `scripts/external_review.py` stops before sending any request and prints the missing variables plus safe setup instructions for environment variables or `.env.local`.
 
 Run external reviewers:
 
@@ -232,7 +244,7 @@ For best results:
 - Review the smallest useful artifact scope.
 - Exclude generated files, secrets, private data, and unrelated project content.
 - Ask for the full audit trail only when you need it.
-- Use `builtin` mode unless cross-provider review is necessary.
+- Use the default `auto` mode for three-model review. Use `builtin` only when you need local-only review or lower external API cost.
 
 ## Repository Structure
 
